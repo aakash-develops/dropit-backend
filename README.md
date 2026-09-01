@@ -1,459 +1,541 @@
-# DropIt— Back-End API
+# DropIt — Real-Time Freight & Delivery Platform
 
-> A real-time freight delivery, bidding, and escrow financial platform built with **Node.js**, **Express.js**, **MongoDB**, and **Socket.IO**.
+> **A production-oriented backend for freight booking, driver bidding, real-time tracking, OTP-verified delivery, KYC, payments, and escrow-based payouts.**
 
-![Node.js](https://img.shields.io/badge/Node.js-v18%2B-green.svg)
-![Express.js](https://img.shields.io/badge/Express.js-v4.18-blue.svg)
-![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose%20v8-brightgreen.svg)
-![Socket.IO](https://img.shields.io/badge/Socket.IO-v4.8-black.svg)
-![License](https://img.shields.io/badge/License-ISC-orange.svg)
-
----
-
-## Overview
-
-**DropIt (`bhariya`)** is a backend platform for real-time freight transportation and delivery management.
-
-The API supports the complete freight lifecycle, from load creation and price estimation through driver bidding, trip assignment, GPS tracking, OTP-based pickup and delivery verification, escrow management, Proof of Delivery (POD), and driver payouts.
-
-The backend exposes a RESTful API for standard application operations and a **Socket.IO WebSocket layer** for real-time communication and location tracking.
-
-### Core Technology Stack
-
-* **Runtime:** Node.js 18+
-* **Framework:** Express.js 4.18
-* **Database:** MongoDB
-* **ODM:** Mongoose 8
-* **Real-Time Communication:** Socket.IO 4.8
-* **Authentication:** JWT
-* **File Uploads:** Multer
-* **Image Processing:** Sharp
-* **Payments:** Paytrail
-* **Email:** Resend
-* **License:** ISC
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
+[![Express.js](https://img.shields.io/badge/Express.js-4.18-blue.svg)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose%208-brightgreen.svg)](https://www.mongodb.com/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-4.8-black.svg)](https://socket.io/)
+[![Paytrail](https://img.shields.io/badge/Payments-Paytrail-purple.svg)](https://www.paytrail.com/)
+[![License](https://img.shields.io/badge/License-ISC-orange.svg)](LICENSE)
 
 ---
 
-## Key Features
+## 🚀 Overview
 
-### 💰 Base Floor Rate Protection
+**DropIt** is a real-time freight delivery platform that connects shippers with drivers through a complete digital logistics workflow.
 
-DropIt includes a built-in price estimation engine through `estimatePrice`.
+The backend is responsible for the core platform lifecycle:
 
-The engine dynamically calculates the minimum allowable freight rate using factors such as:
+```text
+Freight Creation
+      ↓
+Price Estimation
+      ↓
+Driver Discovery
+      ↓
+Bidding & Negotiation
+      ↓
+Trip Assignment
+      ↓
+Payment & Escrow
+      ↓
+Pickup Verification
+      ↓
+Real-Time GPS Tracking
+      ↓
+Proof of Delivery
+      ↓
+Delivery Verification
+      ↓
+Driver Payout
+```
+
+Unlike a basic CRUD backend, DropIt combines **transactional workflows, real-time communication, geospatial queries, financial state management, file processing, authentication, and KYC verification** into a single backend system.
+
+---
+
+# ✨ Engineering Highlights
+
+## 💰 Dynamic Freight Price Protection
+
+DropIt includes a server-side pricing engine that calculates the minimum acceptable freight rate before a shipment can be posted.
+
+The estimation considers:
 
 * Vehicle type
 * Driving distance
 * Load weight
+* Platform pricing rules
 
-This prevents shippers from creating freight requests below the platform's minimum calculated rate.
-
----
-
-### 🤝 Turn-Based Bidding & Negotiation
-
-The bidding system provides structured negotiations between shippers and drivers.
-
-Key characteristics include:
-
-* Driver offer and counter-offer support
-* Maximum of **2 negotiation rounds per driver**
-* Strict turn-based negotiation
-* Offer validation and rate locking
-* Automatic trip confirmation when an offer is accepted
-* Automatic generation of pickup and delivery OTPs
-
-Once a bid is accepted, the agreed rate becomes locked for the trip.
-
----
-
-### 📍 Real-Time GPS Tracking & Communication
-
-The backend uses **Socket.IO** to provide real-time freight coordination.
-
-Supported functionality includes:
-
-* Driver GPS location updates
-* Freight-specific Socket.IO rooms
-* Real-time load updates
-* Driver dispatch notifications
-* Shipment tracking
-* In-app freight chat
-* Asynchronous trip communication
-
----
-
-### 🔐 OTP-Based Escrow Verification
-
-The delivery workflow uses a two-stage verification mechanism:
-
-1. **Pickup OTP**
-2. **Delivery OTP**
-
-The escrow workflow is designed to:
-
-1. Lock the trip payment.
-2. Verify the pickup using an OTP.
-3. Track the active delivery.
-4. Require Proof of Delivery (POD).
-5. Verify the delivery OTP.
-6. Calculate the platform commission.
-7. Release the driver's net payout.
-
-The platform commission is currently configured at **10%**, with **90%** of the applicable trip amount transferred to the driver's wallet.
-
-Financial operations are designed to execute atomically where supported by the underlying database workflow.
-
----
-
-### 🪪 Driver KYC & Verification
-
-The platform includes a driver identity verification pipeline supporting multipart document submissions.
-
-KYC submissions can include:
-
-* Driver selfie
-* Driving license
-* Vehicle registration / bluebook
-
-Administrative review supports the following states:
-
-* `approved`
-* `rejected`
-* `action_required`
-
-This allows administrators to approve verified drivers, reject invalid submissions, or request additional documentation.
-
----
-
-### 💳 Payments & Driver Wallets
-
-DropIt integrates with **Paytrail** for online payment processing.
-
-The backend also provides driver wallet functionality for tracking:
-
-* Available earnings
-* Pending escrow
-* Trip-related balances
-* Driver payout information
-
-Paytrail payment notifications are handled through a public callback/webhook endpoint.
-
----
-
-### 🖼️ Media Processing
-
-Uploaded images are processed using **Multer** and **Sharp**.
-
-The media pipeline:
-
-1. Receives image uploads in memory.
-2. Processes the uploaded image with Sharp.
-3. Compresses and optimizes the image.
-4. Converts the image to WebP where applicable.
-5. Stores the resulting web-ready media locally.
-
-This reduces storage requirements and improves image delivery performance.
-
----
-
-# Architecture
-
-The backend follows a layered architecture combining REST APIs, real-time WebSocket communication, business services, media processing, and MongoDB persistence.
+This prevents clients from bypassing minimum pricing requirements and ensures that critical business rules are enforced at the API layer rather than trusted to the frontend.
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                    Client Applications                      │
-│                 Mobile App / Web Application                │
-└──────────────────────┬──────────────────────┬───────────────┘
-                       │                      │
-              HTTP / REST API          WebSocket / Socket.IO
-              JWT Authentication       Real-Time Events
-                       │                      │
-                       ▼                      ▼
-        ┌────────────────────────┐  ┌────────────────────────┐
-        │    Express.js API      │  │    Socket.IO Server    │
-        │      Route Layer       │  │    Real-Time Engine    │
-        └────────────┬───────────┘  └────────────┬───────────┘
-                     │                           │
-          ┌──────────┴──────────┐       ┌────────┴───────────┐
-          │                     │       │                    │
-          ▼                     ▼       ▼                    ▼
-┌──────────────────┐  ┌────────────────┐ ┌──────────────┐ ┌────────────────┐
-│ Business         │  │ Media Pipeline │ │ Driver GPS   │ │ Freight Rooms  │
-│ Services         │  │                │ │ Location     │ │ & Chat         │
-│                  │  │ Multer         │ │ Relay        │ │                │
-│ • Rate Rules     │  │ Sharp          │ │              │ │ • Dispatch     │
-│ • Bidding        │  │ WebP           │ │              │ │ • Messaging    │
-│ • OTP            │  │ Compression    │ │              │ │ • Updates      │
-│ • Escrow         │  └───────┬────────┘ └──────────────┘ └────────────────┘
-│ • Payments       │          │
-└────────┬─────────┘          ▼
-         │             ┌───────────────┐
-         │             │ Local Uploads │
-         │             └───────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    MongoDB Database                         │
-│                     Mongoose Schemas                        │
-│                                                             │
-│  • Freight Requests       • Bids & Negotiations             │
-│  • Trips                  • Wallets                         │
-│  • Payments               • KYC Records                     │
-│  • GeoJSON Coordinates    • Chat / Trip Data                │
-└─────────────────────────────────────────────────────────────┘
+Vehicle Type
+     +
+Distance
+     +
+Load Weight
+     ↓
+Price Estimation Engine
+     ↓
+Minimum Allowed Rate
 ```
 
 ---
 
-# Environment Variables
+## 🤝 Turn-Based Driver Bidding
 
-Create a `.env` file in the root directory.
+DropIt implements a structured negotiation system instead of unrestricted offer submissions.
 
-| Variable         | Type   | Description                               | Example                            |
-| ---------------- | ------ | ----------------------------------------- | ---------------------------------- |
-| `PORT`           | Number | Port used by the Express server           | `5000`                             |
-| `MONGO_URL`      | String | MongoDB connection string                 | `mongodb://localhost:27017/dropit` |
-| `JWT_SECRET`     | String | Secret used to sign and verify JWT tokens | `your_jwt_secret_key`              |
-| `RESEND_API_KEY` | String | Resend API key for transactional email    | `re_your_resend_api_key`           |
+### Key rules
 
-> **Security:** Never commit your `.env` file, JWT secrets, payment credentials, or API keys to source control.
+* Drivers can submit offers and counter-offers.
+* Negotiations are turn-based.
+* Each driver is limited to **2 negotiation rounds**.
+* Invalid or out-of-turn offers are rejected server-side.
+* Once accepted, the agreed price is locked.
+* Acceptance triggers generation of delivery verification credentials.
+
+This provides a predictable negotiation state machine and prevents clients from manipulating bidding rules.
 
 ---
 
-# Authentication
+## 🔐 Escrow-Based Delivery Workflow
 
-Protected API endpoints require a valid JWT access token.
+The payment lifecycle is tied directly to delivery verification.
 
-Include the token in the HTTP `Authorization` header:
+A simplified workflow:
+
+```text
+Trip Accepted
+     ↓
+Payment Secured
+     ↓
+Funds Held in Escrow
+     ↓
+Pickup OTP Verified
+     ↓
+Shipment In Transit
+     ↓
+Proof of Delivery Uploaded
+     ↓
+Delivery OTP Verified
+     ↓
+Escrow Released
+     ↓
+10% Platform Fee
+     +
+90% Driver Earnings
+```
+
+The backend coordinates payment state, delivery state, OTP verification, POD submission, and driver wallet balances.
+
+---
+
+## 📍 Real-Time GPS Tracking
+
+DropIt uses **Socket.IO** to provide live driver tracking without relying on continuous HTTP polling.
+
+Drivers can broadcast their current coordinates while customers subscribed to the corresponding freight room receive location updates in real time.
+
+```text
+Driver Application
+       │
+       │ GPS coordinates
+       ▼
+  Socket.IO Server
+       │
+       │ Validate / relay
+       ▼
+ Freight Room
+       │
+       ├──────────────► Shipper
+       │
+       └──────────────► Tracking Clients
+```
+
+This architecture reduces unnecessary polling and provides a responsive tracking experience.
+
+---
+
+## 💬 Real-Time Freight Communication
+
+Each freight request can have its own Socket.IO room.
+
+The real-time layer supports:
+
+* Freight room subscriptions
+* Driver location updates
+* New freight notifications
+* Dispatch events
+* Trip messaging
+* Shipment-specific updates
+
+This keeps communication scoped to the relevant shipment instead of broadcasting every event globally.
+
+---
+
+## 🪪 Driver KYC Pipeline
+
+DropIt provides a complete driver verification workflow.
+
+Drivers can submit:
+
+* Selfie
+* Driving license
+* Vehicle registration / bluebook
+
+Administrators can then move submissions through:
+
+| Status            | Meaning                                                 |
+| ----------------- | ------------------------------------------------------- |
+| `approved`        | Driver has passed verification                          |
+| `rejected`        | Submitted information was rejected                      |
+| `action_required` | Driver must provide additional or corrected information |
+
+The KYC system provides the foundation for restricting freight participation to verified drivers.
+
+---
+
+## 💳 Payment & Wallet Management
+
+The backend integrates with **Paytrail** for payment processing and maintains driver financial state.
+
+The wallet system distinguishes between:
+
+* Available earnings
+* Pending escrow
+* Trip balances
+* Driver payout amounts
+
+Payment notifications are received through a dedicated Paytrail callback endpoint.
+
+---
+
+## 🖼️ Image Processing Pipeline
+
+Freight and delivery workflows require image uploads, particularly for KYC and Proof of Delivery.
+
+DropIt processes images using **Multer + Sharp**:
+
+```text
+Multipart Upload
+      ↓
+     Multer
+      ↓
+In-Memory Buffer
+      ↓
+     Sharp
+      ↓
+Resize / Compress / Optimize
+      ↓
+     WebP
+      ↓
+Local Storage
+```
+
+Converting images to WebP helps reduce storage requirements and improves delivery performance for client applications.
+
+---
+
+# 🏗️ System Architecture
+
+DropIt uses a layered backend architecture separating HTTP APIs, real-time communication, business logic, media processing, and persistence.
+
+```text
+                         ┌───────────────────────────┐
+                         │     Web / Mobile Apps     │
+                         └─────────────┬─────────────┘
+                                       │
+                    ┌──────────────────┴──────────────────┐
+                    │                                     │
+              REST / HTTP                           WebSockets
+              JWT Auth                              Socket.IO
+                    │                                     │
+                    ▼                                     ▼
+        ┌──────────────────────┐             ┌──────────────────────┐
+        │   Express.js API     │             │   Socket.IO Server   │
+        │    Route Layer       │             │   Real-Time Engine   │
+        └──────────┬───────────┘             └──────────┬───────────┘
+                   │                                    │
+          ┌────────┴─────────┐              ┌───────────┼───────────┐
+          │                  │              │           │           │
+          ▼                  ▼              ▼           ▼           ▼
+   ┌──────────────┐   ┌──────────────┐  Driver GPS   Freight     Dispatch
+   │  Business    │   │ Media Layer  │  Tracking      Rooms       Events
+   │  Services    │   │              │
+   │              │   │ Multer       │
+   │ • Pricing    │   │ Sharp        │
+   │ • Bidding    │   │ WebP         │
+   │ • OTP        │   └──────┬───────┘
+   │ • Escrow     │          │
+   │ • Payments   │          ▼
+   │ • KYC        │   ┌──────────────┐
+   └──────┬───────┘   │ Local Media  │
+          │           └──────────────┘
+          │
+          ▼
+   ┌────────────────────────────────────────┐
+   │              MongoDB                   │
+   │            Mongoose ODM                │
+   │                                        │
+   │ Freight │ Bids │ Trips │ Wallets       │
+   │ Payments │ KYC │ GeoJSON │ Messages    │
+   └────────────────────────────────────────┘
+```
+
+---
+
+# 🧩 Core Backend Domains
+
+| Domain               | Responsibility                                                 |
+| -------------------- | -------------------------------------------------------------- |
+| **Freight Requests** | Load creation, discovery, assignment, and lifecycle management |
+| **Pricing Engine**   | Minimum freight rate calculation                               |
+| **Bidding**          | Driver offers, counters, negotiation limits, and acceptance    |
+| **Trips**            | Assigned freight and delivery lifecycle                        |
+| **Escrow**           | Payment locking and release workflow                           |
+| **OTP Verification** | Pickup and delivery authorization                              |
+| **GPS Tracking**     | Real-time driver location broadcasting                         |
+| **KYC**              | Driver identity and vehicle verification                       |
+| **Payments**         | Paytrail checkout and payment callbacks                        |
+| **Wallets**          | Driver earnings and pending balances                           |
+| **Media**            | Image upload, compression, and WebP conversion                 |
+| **Messaging**        | Freight-specific real-time communication                       |
+
+---
+
+# 🔌 REST API
+
+All protected endpoints require:
 
 ```http
 Authorization: Bearer <JWT_TOKEN>
 ```
 
-Unless explicitly marked as public, the API endpoints documented below require authentication.
-
----
-
-# API Reference
-
 ## Freight Requests
 
 **Base URL:** `/api/requests`
 
-| Method | Endpoint          | Description                                                         | Authentication |
-| ------ | ----------------- | ------------------------------------------------------------------- | -------------- |
-| `POST` | `/estimate-price` | Calculate the minimum freight rate before posting a request         | Required       |
-| `POST` | `/`               | Create a new freight request and enforce the minimum floor price    | Required       |
-| `GET`  | `/my`             | List freight requests created by the authenticated shipper          | Required       |
-| `GET`  | `/nearby`         | Find open loads near supplied geospatial coordinates (`lng`, `lat`) | Required       |
-| `GET`  | `/driver-trips`   | Fetch active trips assigned to the authenticated driver             | Required       |
-| `GET`  | `/`               | View the global active freight feed                                 | Required       |
-| `GET`  | `/:id`            | Retrieve details for a specific freight request                     | Required       |
-| `PUT`  | `/:id/accept`     | Directly accept a trip at its current price                         | Required       |
-| `POST` | `/:id/pod`        | Upload Proof of Delivery cargo imagery                              | Required       |
-| `POST` | `/:id/verify-otp` | Verify pickup or delivery OTPs                                      | Required       |
+| Method | Endpoint          | Description                                  | Auth |
+| ------ | ----------------- | -------------------------------------------- | ---- |
+| `POST` | `/estimate-price` | Calculate minimum freight price              | ✅    |
+| `POST` | `/`               | Create freight request with price validation | ✅    |
+| `GET`  | `/my`             | List authenticated shipper's requests        | ✅    |
+| `GET`  | `/nearby`         | Find nearby open loads using coordinates     | ✅    |
+| `GET`  | `/driver-trips`   | Get active driver trips                      | ✅    |
+| `GET`  | `/`               | Get active freight feed                      | ✅    |
+| `GET`  | `/:id`            | Get freight request details                  | ✅    |
+| `PUT`  | `/:id/accept`     | Directly accept a freight request            | ✅    |
+| `POST` | `/:id/pod`        | Upload Proof of Delivery                     | ✅    |
+| `POST` | `/:id/verify-otp` | Verify pickup or delivery OTP                | ✅    |
 
 ---
 
-## Bidding & Negotiations
+## Bidding & Negotiation
 
 **Base URL:** `/api/bids`
 
-| Method | Endpoint              | Description                                                           | Authentication |
-| ------ | --------------------- | --------------------------------------------------------------------- | -------------- |
-| `POST` | `/`                   | Submit a new offer or counter-offer                                   | Required       |
-| `GET`  | `/request/:requestId` | Retrieve chronologically sorted bidding history for a freight request | Required       |
-| `PUT`  | `/:bidId/accept`      | Accept an offer, lock the agreed rate, and generate verification OTPs | Required       |
+| Method | Endpoint              | Description                     | Auth |
+| ------ | --------------------- | ------------------------------- | ---- |
+| `POST` | `/`                   | Submit offer or counter-offer   | ✅    |
+| `GET`  | `/request/:requestId` | Retrieve bid history            | ✅    |
+| `PUT`  | `/:bidId/accept`      | Accept offer and lock trip rate | ✅    |
 
-### Bidding Rules
+### Negotiation Constraints
 
-The negotiation system enforces:
+```text
+Maximum negotiation rounds per driver: 2
 
-* Turn-based communication between shipper and driver
-* A maximum of **2 rounds per driver**
-* Validated offer amounts
-* Rate locking after acceptance
-* OTP generation following successful bid acceptance
+Shipper
+   ↕
+Driver
+   ↕
+Counter Offer
+   ↕
+Final Offer
+   ↓
+Accepted
+   ↓
+Rate Locked
+```
 
 ---
 
-## Driver KYC
+# 🪪 KYC API
 
 **Base URL:** `/api/kyc`
 
-| Method | Endpoint         | Description                                                                     | Authentication   |
-| ------ | ---------------- | ------------------------------------------------------------------------------- | ---------------- |
-| `POST` | `/`              | Submit driver KYC documents including license, selfie, and vehicle registration | Required         |
-| `GET`  | `/`              | Retrieve the authenticated driver's current KYC status                          | Required         |
-| `PUT`  | `/:kycId/status` | Approve, reject, or request changes to a KYC submission                         | Required / Admin |
-
-### KYC Statuses
-
-| Status            | Description                                                   |
-| ----------------- | ------------------------------------------------------------- |
-| `approved`        | Driver verification has been successfully completed           |
-| `rejected`        | Submitted documents were rejected                             |
-| `action_required` | Additional information or corrected documentation is required |
+| Method | Endpoint         | Description                 | Auth  |
+| ------ | ---------------- | --------------------------- | ----- |
+| `POST` | `/`              | Submit driver KYC documents | ✅     |
+| `GET`  | `/`              | Retrieve current KYC status | ✅     |
+| `PUT`  | `/:kycId/status` | Update KYC review status    | Admin |
 
 ---
 
-## Payments & Wallet
+# 💰 Payments & Wallet API
 
 **Base URL:** `/api/payments`
 
-| Method | Endpoint             | Description                                                 | Authentication |
-| ------ | -------------------- | ----------------------------------------------------------- | -------------- |
-| `POST` | `/paytrail/create`   | Create a Paytrail checkout/payment session                  | Required       |
-| `GET`  | `/wallet/driver`     | Retrieve driver earnings, pending escrow, and trip balances | Required       |
-| `ALL`  | `/paytrail/callback` | Receive Paytrail payment notifications/webhooks             | Public         |
-
-> The Paytrail callback endpoint must remain publicly accessible so Paytrail can deliver payment notifications to the backend.
+| Method | Endpoint             | Description                         | Auth   |
+| ------ | -------------------- | ----------------------------------- | ------ |
+| `POST` | `/paytrail/create`   | Create Paytrail checkout session    | ✅      |
+| `GET`  | `/wallet/driver`     | Retrieve driver wallet and earnings | ✅      |
+| `ALL`  | `/paytrail/callback` | Receive Paytrail payment callbacks  | Public |
 
 ---
 
-# Real-Time API
+# ⚡ Real-Time Socket API
 
-DropIt uses **Socket.IO** for real-time freight coordination, tracking, and communication.
+DropIt uses Socket.IO for real-time shipment coordination.
 
-Clients connect to the Socket.IO server and exchange events using structured payloads.
-
-## Socket Events
-
-| Event                     | Direction       | Payload                                     | Purpose                                                       |
-| ------------------------- | --------------- | ------------------------------------------- | ------------------------------------------------------------- |
-| `join_freight_room`       | Client → Server | `{ freightId }`                             | Subscribe a client to updates for a specific freight request  |
-| `update_driver_location`  | Driver → Server | `{ freightId, latitude, longitude }`        | Send the driver's current GPS coordinates                     |
-| `driver_location_updated` | Server → Room   | `{ latitude, longitude }`                   | Broadcast updated driver coordinates to freight subscribers   |
-| `broadcast_new_freight`   | Client → Server | `newFreightData`                            | Notify nearby drivers about a newly available freight request |
-| `send_freight_message`    | Client → Server | `{ freightId, senderId, senderName, text }` | Send an in-app freight/trip chat message                      |
+| Event                     | Direction       | Payload                                     | Purpose                       |
+| ------------------------- | --------------- | ------------------------------------------- | ----------------------------- |
+| `join_freight_room`       | Client → Server | `{ freightId }`                             | Join a freight-specific room  |
+| `update_driver_location`  | Driver → Server | `{ freightId, latitude, longitude }`        | Send driver GPS coordinates   |
+| `driver_location_updated` | Server → Room   | `{ latitude, longitude }`                   | Broadcast driver location     |
+| `broadcast_new_freight`   | Client → Server | `newFreightData`                            | Notify drivers of new freight |
+| `send_freight_message`    | Client → Server | `{ freightId, senderId, senderName, text }` | Send trip message             |
 
 ---
 
-# Freight Tracking Flow
-
-A typical real-time tracking workflow is:
+# 🔄 End-to-End Freight Lifecycle
 
 ```text
-Driver App
-    │
-    │ update_driver_location
-    ▼
-Socket.IO Server
-    │
-    │ Validate / process location
-    ▼
-Freight Room
-    │
-    │ driver_location_updated
-    ▼
-Shipper / Tracking Clients
-    │
-    ▼
-Live Driver Location
-```
-
-Clients can join a freight-specific room using:
-
-```text
-join_freight_room
-```
-
-Once subscribed, clients receive relevant freight updates without needing to repeatedly poll the REST API.
-
----
-
-# Escrow & Delivery Flow
-
-The financial and delivery workflow can be summarized as follows:
-
-```text
-Freight Request Created
-        │
-        ▼
-Price Validation
-        │
-        ▼
-Driver Bidding / Direct Acceptance
-        │
-        ▼
-Offer Accepted
-        │
-        ├──► Trip Rate Locked
-        │
-        └──► Pickup & Delivery OTPs Generated
-                     │
-                     ▼
-              Payment / Escrow
-                     │
-                     ▼
-               Pickup OTP
-                     │
-                     ▼
-                In Transit
-                     │
-                     ▼
-                 POD Upload
-                     │
-                     ▼
-              Delivery OTP
-                     │
-                     ▼
-             Delivery Verified
-                     │
-                     ▼
-              Commission Applied
-                     │
-             ┌───────┴───────┐
-             ▼               ▼
-       Platform Fee      Driver Wallet
-           10%                90%
+┌─────────────────────┐
+│  Create Freight     │
+└──────────┬──────────┘
+           ↓
+┌─────────────────────┐
+│ Estimate Min Price  │
+└──────────┬──────────┘
+           ↓
+┌─────────────────────┐
+│ Publish Freight     │
+└──────────┬──────────┘
+           ↓
+┌─────────────────────┐
+│ Driver Discovery    │
+│ + Real-Time Alerts  │
+└──────────┬──────────┘
+           ↓
+┌─────────────────────┐
+│ Bidding / Negotiation│
+└──────────┬──────────┘
+           ↓
+┌─────────────────────┐
+│ Offer Accepted      │
+│ Rate Locked         │
+└──────────┬──────────┘
+           ↓
+┌─────────────────────┐
+│ Payment / Escrow    │
+└──────────┬──────────┘
+           ↓
+┌─────────────────────┐
+│ Pickup OTP          │
+└──────────┬──────────┘
+           ↓
+┌─────────────────────┐
+│ Live GPS Tracking   │
+└──────────┬──────────┘
+           ↓
+┌─────────────────────┐
+│ Proof of Delivery   │
+└──────────┬──────────┘
+           ↓
+┌─────────────────────┐
+│ Delivery OTP        │
+└──────────┬──────────┘
+           ↓
+┌─────────────────────┐
+│ Escrow Released     │
+└──────────┬──────────┘
+           ↓
+      ┌────┴────┐
+      ↓         ↓
+   10% Fee    90% Driver
+              Earnings
 ```
 
 ---
 
-# Media Upload Pipeline
+# 🔐 Authentication & Security
 
-Images submitted through the API are processed before being stored.
+DropIt uses JWT-based authentication for protected API operations.
 
-```text
-Client Upload
-     │
-     ▼
-Multer
-     │
-     ▼
-In-Memory Image Buffer
-     │
-     ▼
-Sharp
-     │
-     ├──► Resize / Optimize
-     │
-     ├──► Compress
-     │
-     └──► Convert to WebP
-              │
-              ▼
-       Local File Storage
-```
+Security-sensitive business rules are enforced on the backend, including:
 
-This approach helps reduce image size while maintaining suitable quality for web and mobile applications.
+* JWT authentication
+* Authorization checks
+* Minimum freight pricing
+* Bidding constraints
+* Turn-based negotiation
+* OTP verification
+* Escrow state transitions
+* Wallet operations
+* KYC review states
+* File upload processing
+
+### Production Security Recommendations
+
+For production deployment, the system should be configured with:
+
+* HTTPS/TLS
+* Secure secret management
+* Request validation
+* Rate limiting
+* File size and MIME-type validation
+* Payment webhook signature verification
+* Strict KYC document authorization
+* Database access controls
+* Audit logging for financial operations
+* Secure CORS configuration
+
+> **Never commit `.env` files, JWT secrets, payment credentials, or API keys to Git.**
 
 ---
 
-# Local Development Setup
+# 🛠️ Tech Stack
+
+### Backend
+
+* Node.js
+* Express.js
+* MongoDB
+* Mongoose
+* Socket.IO
+* JWT
+
+### Payments & Communication
+
+* Paytrail
+* Resend
+
+### File Processing
+
+* Multer
+* Sharp
+* WebP
+
+### Data & Infrastructure Concepts
+
+* GeoJSON / geospatial queries
+* REST APIs
+* WebSockets
+* JWT authentication
+* Escrow workflows
+* Transactional financial state
+* Real-time event-driven architecture
+
+---
+
+# 📦 Local Development
 
 ## Prerequisites
 
-Before running the project locally, make sure you have:
+Make sure you have installed:
 
-* Node.js 18 or later
-* npm
-* MongoDB
-* A Paytrail merchant/integration configuration if payment functionality is required
-* A Resend API key if email functionality is required
+* **Node.js 18+**
+* **npm**
+* **MongoDB**
+
+Optional integrations:
+
+* Paytrail account/configuration
+* Resend API key
 
 ---
 
@@ -463,8 +545,6 @@ Before running the project locally, make sure you have:
 git clone https://github.com/aakash-develops/dropit-backend.git
 cd dropit-backend
 ```
-
-> Replace the repository URL with the actual project repository.
 
 ---
 
@@ -482,24 +562,23 @@ Create a `.env` file in the project root:
 
 ```env
 PORT=5000
+
 MONGO_URL=mongodb://localhost:27017/dropit
+
 JWT_SECRET=your_jwt_secret_key
+
 RESEND_API_KEY=re_your_resend_api_key
 ```
 
-Use secure, environment-specific credentials for production deployments.
-
 ---
 
-## 4. Start the Development Server
+## 4. Start Development Server
 
 ```bash
 npm run dev
 ```
 
-The API should then be available on the configured port.
-
-For example:
+The API will be available at:
 
 ```text
 http://localhost:5000
@@ -507,7 +586,7 @@ http://localhost:5000
 
 ---
 
-## 5. Start the Production Server
+## 5. Start Production Server
 
 ```bash
 npm start
@@ -515,80 +594,90 @@ npm start
 
 ---
 
-# Suggested Project Responsibilities
+# 🧪 Development Philosophy
 
-The backend can be conceptually divided into the following responsibilities:
+DropIt is designed around several backend engineering principles.
 
-| Component          | Responsibility                                   |
-| ------------------ | ------------------------------------------------ |
-| Express Routes     | HTTP API endpoints and request handling          |
-| Authentication     | JWT-based authorization                          |
-| Business Services  | Freight, bidding, escrow, OTP, and payment rules |
-| MongoDB / Mongoose | Persistent application data                      |
-| Socket.IO          | Real-time tracking, dispatch, and communication  |
-| Multer             | Multipart file uploads                           |
-| Sharp              | Image processing and optimization                |
-| Paytrail           | Payment processing                               |
-| Resend             | Transactional email                              |
+### Server-Side Enforcement
 
----
+Business-critical rules are validated on the server rather than relying on client-side behavior.
 
-# Security Considerations
+### Event-Driven Communication
 
-Because DropIt handles user identity, payment workflows, freight information, and financial balances, production deployments should pay particular attention to:
+Real-time operations such as GPS tracking, freight notifications, and trip messaging use WebSockets rather than constant polling.
 
-* Secure JWT secret management
-* Environment variable protection
-* HTTPS/TLS for API and WebSocket connections
-* Authentication and authorization checks
-* Input validation
-* File type and file size validation
-* KYC document access control
-* Payment webhook verification
-* Rate limiting
-* Secure OTP generation and validation
-* Database access controls
-* Protection against unauthorized wallet operations
-* Audit logging for financial and administrative actions
+### Domain Separation
 
-> Never expose secrets, payment credentials, KYC documents, or internal administrative endpoints to unauthorized clients.
+Freight, bidding, payments, KYC, wallet, and communication concerns are treated as separate backend domains.
+
+### Financial Integrity
+
+Payment, escrow, commission, and wallet state transitions should be handled carefully to avoid duplicate payouts or inconsistent balances.
+
+### Performance-Aware Media Handling
+
+Images are compressed and converted before storage to reduce unnecessary bandwidth and storage consumption.
 
 ---
 
-# API Design Principles
+# 📊 What This Project Demonstrates
 
-The backend is designed around several core principles:
+From an engineering perspective, DropIt demonstrates experience with:
 
-### Authentication First
-
-Protected operations require a valid JWT token and appropriate user authorization.
-
-### Server-Side Business Rules
-
-Critical rules such as minimum freight rates, bidding limits, OTP verification, and escrow state transitions should be enforced on the server rather than trusted to client applications.
-
-### Real-Time Where Appropriate
-
-REST APIs handle persistent CRUD-style operations, while Socket.IO handles time-sensitive updates such as driver locations, dispatch notifications, and freight chat.
-
-### Financial State Integrity
-
-Escrow and wallet operations should preserve consistent financial state and prevent duplicate or unauthorized payouts.
-
-### Media Optimization
-
-Uploaded images are processed before storage to reduce payload size and improve application performance.
+* Designing RESTful APIs
+* Building real-time WebSocket systems
+* Implementing geospatial queries
+* Designing stateful business workflows
+* Building bidding and negotiation logic
+* Implementing OTP-based verification
+* Integrating payment gateways
+* Managing escrow-style financial workflows
+* Building driver wallet systems
+* Implementing KYC pipelines
+* Handling multipart file uploads
+* Performing server-side image optimization
+* Designing JWT authentication
+* Working with MongoDB and Mongoose
+* Building event-driven backend features
 
 ---
 
-# License
+# 🗺️ Future Improvements
+
+Potential improvements for scaling the platform include:
+
+* Redis for distributed Socket.IO and caching
+* Background job processing for asynchronous workloads
+* Object storage such as S3-compatible storage for media
+* Dedicated notification services
+* Advanced observability and structured logging
+* Automated integration and end-to-end testing
+* Horizontal API scaling
+* Database indexing and query optimization
+* CI/CD pipelines
+* Containerized deployment with Docker
+
+---
+
+# 📁 Repository
+
+**Author:** [aakash-develops](https://github.com/aakash-develops)
+
+**Project:** [DropIt Backend](https://github.com/aakash-develops/dropit-backend)
+
+---
+
+# 📄 License
 
 This project is distributed under the **ISC License**.
 
-See the project's license file for the complete license terms.
+See [`LICENSE`](LICENSE) for the complete license terms.
 
 ---
 
-## Status
-
-**DropIt** is a backend API for freight delivery, driver bidding, real-time tracking, KYC verification, payment processing, and escrow-based delivery workflows.
+<p align="center">
+  Built with Node.js, Express, MongoDB & Socket.IO
+</p>
+<p align="center">
+  <strong>DropIt — Connecting freight with reliable delivery.</strong>
+</p>
