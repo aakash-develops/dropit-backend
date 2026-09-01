@@ -1,4 +1,4 @@
-# DropIt (`bhariya`) — Back-End API
+# DropIt— Back-End API
 
 > A real-time freight delivery, bidding, and escrow financial platform built with **Node.js**, **Express.js**, **MongoDB**, and **Socket.IO**.
 
@@ -460,7 +460,7 @@ Before running the project locally, make sure you have:
 ## 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/dropit-backend.git
+git clone https://github.com/aakash-develops/dropit-backend.git
 cd dropit-backend
 ```
 
@@ -591,4 +591,4 @@ See the project's license file for the complete license terms.
 
 ## Status
 
-**DropIt (`bhariya`)** is a backend API for freight delivery, driver bidding, real-time tracking, KYC verification, payment processing, and escrow-based delivery workflows.
+**DropIt** is a backend API for freight delivery, driver bidding, real-time tracking, KYC verification, payment processing, and escrow-based delivery workflows.
