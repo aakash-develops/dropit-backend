@@ -75,30 +75,25 @@ Native integration with Paytrail for online payments, paired with a driver walle
 
 ## 🧩 System Architecture
 
-```mermaid
 flowchart LR
-    Client[Client (Mobile/Web)] -->|HTTP/JWT| API[Express.js Route Layer]
-    Client -->|WebSocket| Socket[Socket.IO Engine]
+    Client["Client (Mobile/Web)"] -->|"HTTP / JWT"| API["Express.js Route Layer"]
+    Client -->|WebSocket| Socket["Socket.IO Engine"]
 
-    subgraph Backend [DropIt Backend]
-        API --> Services[Services & Logic]
-        Services --> DB[(MongoDB Database)]
-        Services --> Queue[Queue Jobs (Email/Notifications)]
+    subgraph Backend ["DropIt Backend"]
+        API --> Services["Services & Logic"]
+        Services --> DB[("MongoDB Database")]
+        Services --> Queue["Queue Jobs (Email / Notifications)"]
 
-        API --> Upload[Multer + Sharp]
-        Upload --> FS[Local Storage / Cloud]
+        API --> Upload["Multer + Sharp"]
+        Upload --> FS["Local Storage / Cloud"]
 
         Socket --> Services
     end
 
-    Services --> Paytrail[Paytrail Gateway]
-    Services --> Redis[Redis (Rate Limiting/Caching)]
+    Services --> Paytrail["Paytrail Gateway"]
+    Services --> Redis["Redis (Rate Limiting / Caching)"]
 
     style Backend fill:#f9f9f9,stroke:#333,stroke-width:2px
-```
-
----
-
 ## 🔥 Technical Highlights
 
 - **Secure Authentication:** JWT-based authentication with role-based access control (Shipper/Driver/Admin).
